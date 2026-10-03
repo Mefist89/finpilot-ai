@@ -4,11 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Bell, Bot, Building2, ChevronDown, ChevronRight, CircleHelp, FileText, LayoutDashboard, Menu, ReceiptText, Search, Settings, ShieldCheck, Sparkles, X } from "lucide-react";
+import { Bell, BookOpenCheck, Bot, Building2, ChevronDown, ChevronRight, CircleHelp, FileText, LayoutDashboard, Menu, ReceiptText, Search, Settings, ShieldCheck, Sparkles, Tags, X } from "lucide-react";
 
 const navigation = [
   { label: "Tablou de bord", href: "/dashboard", icon: LayoutDashboard },
   { label: "Documente", href: "/documents", icon: FileText },
+  { label: "Registre facturi", href: "/registers", icon: BookOpenCheck },
+  { label: "Formarea prețurilor", href: "/prices", icon: Tags },
   { label: "Jurnalul operațiunilor", href: "/ledger", icon: ReceiptText },
   { label: "FinPilot AI", href: "/copilot", icon: Bot },
 ];

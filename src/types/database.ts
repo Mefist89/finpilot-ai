@@ -252,6 +252,204 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          counterparty_name: string
+          counterparty_tax_id: string | null
+          created_at: string
+          currency: string
+          direction: Database["public"]["Enums"]["invoice_direction"]
+          id: string
+          invoice_number: string
+          issue_date: string
+          notes: string | null
+          source_document_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          total_amount: number
+          updated_at: string
+          user_id: string
+          vat_amount: number
+        }
+        Insert: {
+          counterparty_name: string
+          counterparty_tax_id?: string | null
+          created_at?: string
+          currency?: string
+          direction: Database["public"]["Enums"]["invoice_direction"]
+          id?: string
+          invoice_number: string
+          issue_date: string
+          notes?: string | null
+          source_document_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number
+        }
+        Update: {
+          counterparty_name?: string
+          counterparty_tax_id?: string | null
+          created_at?: string
+          currency?: string
+          direction?: Database["public"]["Enums"]["invoice_direction"]
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          notes?: string | null
+          source_document_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number
+        }
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_id: string
+          line_number: number
+          product_name: string
+          quantity: number
+          sku: string | null
+          subtotal: number
+          total_amount: number
+          unit: string
+          unit_price: number
+          user_id: string
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_id: string
+          line_number: number
+          product_name: string
+          quantity: number
+          sku?: string | null
+          subtotal: number
+          total_amount: number
+          unit?: string
+          unit_price: number
+          user_id?: string
+          vat_amount: number
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          line_number?: number
+          product_name?: string
+          quantity?: number
+          sku?: string | null
+          subtotal?: number
+          total_amount?: number
+          unit?: string
+          unit_price?: number
+          user_id?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: []
+      }
+      price_sheets: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          purchase_invoice_id: string
+          sheet_date: string
+          sheet_number: number
+          status: Database["public"]["Enums"]["price_sheet_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchase_invoice_id: string
+          sheet_date: string
+          sheet_number?: number
+          status?: Database["public"]["Enums"]["price_sheet_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          purchase_invoice_id?: string
+          sheet_date?: string
+          sheet_number?: number
+          status?: Database["public"]["Enums"]["price_sheet_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      price_sheet_items: {
+        Row: {
+          additional_cost: number
+          created_at: string
+          id: string
+          invoice_item_id: string
+          line_number: number
+          markup_percent: number
+          price_sheet_id: string
+          product_name: string
+          purchase_price: number
+          quantity: number
+          sale_price: number
+          sku: string | null
+          unit: string
+          user_id: string
+          vat_rate: number
+        }
+        Insert: {
+          additional_cost?: number
+          created_at?: string
+          id?: string
+          invoice_item_id: string
+          line_number: number
+          markup_percent?: number
+          price_sheet_id: string
+          product_name: string
+          purchase_price: number
+          quantity: number
+          sale_price: number
+          sku?: string | null
+          unit: string
+          user_id?: string
+          vat_rate?: number
+        }
+        Update: {
+          additional_cost?: number
+          created_at?: string
+          id?: string
+          invoice_item_id?: string
+          line_number?: number
+          markup_percent?: number
+          price_sheet_id?: string
+          product_name?: string
+          purchase_price?: number
+          quantity?: number
+          sale_price?: number
+          sku?: string | null
+          unit?: string
+          user_id?: string
+          vat_rate?: number
+        }
+        Relationships: []
+      }
       ledger_entries: {
         Row: {
           approved_at: string | null
@@ -403,6 +601,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_invoice: {
+        Args: {
+          p_counterparty_name: string
+          p_counterparty_tax_id: string
+          p_currency: string
+          p_direction: Database["public"]["Enums"]["invoice_direction"]
+          p_invoice_number: string
+          p_issue_date: string
+          p_items: Json
+        }
+        Returns: string
+      }
       create_journal_entry: {
         Args: {
           p_amount: number
@@ -412,6 +622,15 @@ export type Database = {
           p_description: string
           p_entry_date: string
           p_source_document_id: string | null
+        }
+        Returns: string
+      }
+      create_price_sheet: {
+        Args: {
+          p_additional_cost: number
+          p_markup_percent: number
+          p_purchase_invoice_id: string
+          p_sheet_date: string
         }
         Returns: string
       }
@@ -446,6 +665,9 @@ export type Database = {
         | "other"
       entry_status: "draft" | "approved" | "posted" | "voided"
       extraction_status: "pending" | "processing" | "completed" | "failed"
+      invoice_direction: "purchase" | "sale"
+      invoice_status: "draft" | "confirmed" | "cancelled"
+      price_sheet_status: "draft" | "approved" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -605,6 +827,9 @@ export const Constants = {
       ],
       entry_status: ["draft", "approved", "posted", "voided"],
       extraction_status: ["pending", "processing", "completed", "failed"],
+      invoice_direction: ["purchase", "sale"],
+      invoice_status: ["draft", "confirmed", "cancelled"],
+      price_sheet_status: ["draft", "approved", "cancelled"],
     },
   },
 } as const
