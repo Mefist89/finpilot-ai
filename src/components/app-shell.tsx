@@ -8,7 +8,7 @@ import { Bell, Bot, ChevronDown, CircleHelp, FileText, LayoutDashboard, Menu, Re
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Documents", href: "/documents", icon: FileText, badge: "3" },
+  { label: "Documents", href: "/documents", icon: FileText },
   { label: "Ledger", href: "/ledger", icon: ReceiptText },
   { label: "AI Copilot", href: "/copilot", icon: Bot },
 ];
@@ -31,8 +31,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="px-4 pt-5">
           <button className="focus-ring flex w-full items-center gap-3 rounded-xl border border-[#e6e9f0] bg-[#fbfcfe] px-3 py-3 text-left hover:border-slate-300">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#0b1838] text-xs font-extrabold text-white">N</span>
-            <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold text-[#0b1838]">Nordic Retail SRL</span><span className="mt-0.5 block text-[10px] font-medium text-slate-400">IDNO 1026600038192</span></span>
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-[#0b1838] text-xs font-extrabold text-white">+</span>
+            <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold text-[#0b1838]">Workspace not configured</span><span className="mt-0.5 block text-[10px] font-medium text-slate-400">Add company details</span></span>
             <ChevronDown className="h-4 w-4 text-slate-400" />
           </button>
         </div>
@@ -45,7 +45,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             return (
               <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={`focus-ring flex h-11 items-center gap-3 rounded-xl px-3 text-[13px] font-bold transition-colors ${active ? "bg-[#eaf9fd] text-[#087da3]" : "text-[#5e687c] hover:bg-slate-50 hover:text-[#0b1838]"}`}>
                 <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.4 : 2} /><span className="flex-1">{item.label}</span>
-                {item.badge && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-[#ffedcf] px-1 text-[10px] font-extrabold text-[#b36600]">{item.badge}</span>}
               </Link>
             );
           })}
@@ -56,8 +55,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="m-3 rounded-2xl bg-[#0b1838] p-4 text-white">
           <div className="mb-3 flex items-center gap-2 text-xs font-bold"><Sparkles className="h-4 w-4 text-[#21d4f6]" />AI automation</div>
-          <p className="text-[11px] leading-4.5 text-blue-100/75">21 of 24 documents processed automatically this month.</p>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full w-[87%] rounded-full bg-[#20c9ef]" /></div>
+          <p className="text-[11px] leading-4.5 text-blue-100/75">Automation metrics will appear after the document pipeline is connected.</p>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full w-0 rounded-full bg-[#20c9ef]" /></div>
         </div>
       </aside>
 
@@ -73,14 +72,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button className="focus-ring relative rounded-xl border border-[#e5e9f0] p-2.5 text-slate-500 hover:bg-slate-50" aria-label="Notifications"><Bell className="h-[18px] w-[18px]" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#6d4df4] ring-2 ring-white" /></button>
             <div className="ml-1 h-8 w-px bg-slate-200" />
             <button className="focus-ring flex items-center gap-2 rounded-xl p-1.5 text-left hover:bg-slate-50">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#dff7fd] text-xs font-extrabold text-[#07799e]">AV</span>
-              <span className="hidden sm:block"><span className="block text-[11px] font-extrabold text-[#0b1838]">Ana Vlas</span><span className="block text-[9px] font-semibold text-slate-400">Administrator</span></span>
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#dff7fd] text-xs font-extrabold text-[#07799e]">A</span>
+              <span className="hidden sm:block"><span className="block text-[11px] font-extrabold text-[#0b1838]">Account</span><span className="block text-[9px] font-semibold text-slate-400">Profile</span></span>
               <ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" />
             </button>
           </div>
         </header>
         <main className="min-h-[calc(100vh-78px)]">{children}</main>
-        <footer className="flex items-center justify-between border-t border-[#e8ebf2] bg-white px-5 py-4 text-[10px] font-semibold text-slate-400 sm:px-9"><span>FinPilot AI · Demo workspace</span><span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />Data protected · Audit trail active</span></footer>
+        <footer className="flex items-center justify-between border-t border-[#e8ebf2] bg-white px-5 py-4 text-[10px] font-semibold text-slate-400 sm:px-9"><span>FinPilot AI</span><span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-slate-400" />Backend setup in progress</span></footer>
       </div>
     </div>
   );

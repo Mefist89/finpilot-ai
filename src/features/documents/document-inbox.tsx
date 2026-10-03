@@ -3,37 +3,31 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { ChevronDown, FileImage, FileSpreadsheet, FileText, Filter, MoreHorizontal, Search, SlidersHorizontal, UploadCloud, X } from "lucide-react";
-import { documents as initialDocuments, type DocumentRecord } from "@/lib/mock-data";
+import type { DocumentRecord } from "@/types/accounting";
 import { StatusPill } from "@/components/status-pill";
 
 const filters = ["All", "Ready", "Needs review", "Processing", "Posted"] as const;
 
 export function DocumentInbox() {
-  const [documents, setDocuments] = useState(initialDocuments);
+  const [documents] = useState<DocumentRecord[]>([]);
   const [filter, setFilter] = useState<(typeof filters)[number]>("All");
   const [search, setSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const visible = documents.filter((doc) => (filter === "All" || doc.status === filter) && `${doc.fileName} ${doc.counterparty}`.toLowerCase().includes(search.toLowerCase()));
 
   function addFile(file?: File) {
     if (!file) return;
-    setUploading(true);
-    window.setTimeout(() => {
-      const newDocument: DocumentRecord = { id: `FP-${1049 + documents.length}`, fileName: file.name, type: file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".png") ? "Receipt" : "Invoice", counterparty: "Detecting supplier…", date: "Just now", amount: "Processing…", status: "Processing", confidence: 0 };
-      setDocuments((current) => [newDocument, ...current]);
-      setUploading(false);
-      setUploadOpen(false);
-    }, 900);
+    setUploadError(`Upload for ${file.name} will be enabled after storage is connected.`);
   }
 
   return (
     <>
       <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-[#e8ebf2] bg-white p-3 card-shadow lg:flex-row lg:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pb-1 lg:pb-0">
-          {filters.map((item) => <button key={item} onClick={() => setFilter(item)} className={`focus-ring whitespace-nowrap rounded-lg px-3.5 py-2 text-[11px] font-bold transition-colors ${filter === item ? "bg-[#0b1838] text-white" : "text-slate-500 hover:bg-slate-50"}`}>{item}{item === "Needs review" && <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-700">1</span>}</button>)}
+          {filters.map((item) => <button key={item} onClick={() => setFilter(item)} className={`focus-ring whitespace-nowrap rounded-lg px-3.5 py-2 text-[11px] font-bold transition-colors ${filter === item ? "bg-[#0b1838] text-white" : "text-slate-500 hover:bg-slate-50"}`}>{item}</button>)}
         </div>
         <div className="flex items-center gap-2">
           <div className="relative flex-1 lg:w-[250px]">
@@ -68,8 +62,8 @@ export function DocumentInbox() {
             </tbody>
           </table>
         </div>
-        {visible.length === 0 && <div className="grid place-items-center px-6 py-16 text-center"><Search className="h-8 w-8 text-slate-300" /><p className="mt-3 text-sm font-extrabold text-[#0b1838]">No documents found</p><p className="mt-1 text-[11px] text-slate-400">Try another search or status filter.</p></div>}
-        <div className="flex items-center justify-between border-t border-[#eef0f5] px-5 py-3.5 text-[10px] font-semibold text-slate-400"><span>Showing {visible.length} of {documents.length} documents</span><div className="flex items-center gap-2"><button className="rounded-lg border border-[#e5e8ef] px-2.5 py-1.5 text-slate-400">Previous</button><span className="grid h-7 w-7 place-items-center rounded-lg bg-[#0b1838] font-bold text-white">1</span><button className="rounded-lg border border-[#e5e8ef] px-2.5 py-1.5 text-slate-600 hover:bg-slate-50">Next</button></div></div>
+        {visible.length === 0 && <div className="grid place-items-center px-6 py-16 text-center"><FileText className="h-8 w-8 text-slate-300" /><p className="mt-3 text-sm font-extrabold text-[#0b1838]">No documents yet</p><p className="mt-1 text-[11px] text-slate-400">Uploaded documents will appear here after storage is connected.</p></div>}
+        <div className="flex items-center justify-between border-t border-[#eef0f5] px-5 py-3.5 text-[10px] font-semibold text-slate-400"><span>{documents.length} documents</span></div>
       </div>
 
       <button onClick={() => setUploadOpen(true)} className="focus-ring fixed bottom-7 right-6 z-10 flex h-12 items-center gap-2 rounded-xl bg-[#0b1838] px-5 text-xs font-extrabold text-white shadow-[0_12px_30px_rgba(11,24,56,0.24)] hover:bg-[#142754] lg:right-9"><UploadCloud className="h-[18px] w-[18px]" />Upload document</button>
@@ -83,7 +77,7 @@ export function DocumentInbox() {
             </button>
             <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={(e) => addFile(e.target.files?.[0])} />
             <div className="mt-5 flex items-center gap-2 rounded-xl bg-slate-50 px-3.5 py-3 text-[10px] font-semibold text-slate-500"><Filter className="h-4 w-4 text-[#0a91b8]" /><span>Duplicate detection and sensitive-data protection are enabled.</span><ChevronDown className="ml-auto h-3.5 w-3.5" /></div>
-            {uploading && <div className="mt-4 flex items-center gap-3 rounded-xl border border-sky-100 bg-sky-50 p-3 text-[11px] font-bold text-sky-700"><span className="h-4 w-4 animate-spin rounded-full border-2 border-sky-200 border-t-sky-600" />Securing and uploading your document…</div>}
+            {uploadError && <div role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] font-bold text-amber-700">{uploadError}</div>}
           </div>
         </div>
       )}

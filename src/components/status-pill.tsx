@@ -1,5 +1,5 @@
 import { CircleCheck, Clock3, ScanSearch, TriangleAlert } from "lucide-react";
-import type { DocumentStatus } from "@/lib/mock-data";
+import type { DocumentStatus } from "@/types/accounting";
 
 const styles: Record<DocumentStatus, string> = {
   Ready: "bg-sky-50 text-sky-700 border-sky-100",

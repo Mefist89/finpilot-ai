@@ -4,19 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { ArrowRight, Bot, Check, CircleAlert, Eye, EyeOff, FileCheck2, Loader2, LockKeyhole, Mail, ShieldCheck, Sparkles } from "lucide-react";
-
-const demoCredentials = {
-  email: "admin@finpilot.ai",
-  password: "demo2026",
-};
+import { ArrowRight, Bot, CircleAlert, Eye, EyeOff, FileCheck2, Loader2, LockKeyhole, Mail, ShieldCheck, Sparkles } from "lucide-react";
 
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -32,7 +26,7 @@ export function LoginForm() {
       const response = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: submittedEmail, password: submittedPassword, remember }),
+        body: JSON.stringify({ email: submittedEmail, password: submittedPassword }),
       });
       const result = await response.json();
 
@@ -41,20 +35,13 @@ export function LoginForm() {
         return;
       }
 
-      const storage = remember ? window.localStorage : window.sessionStorage;
-      storage.setItem("finpilot_demo_session", JSON.stringify(result.user));
       router.replace("/dashboard");
+      router.refresh();
     } catch {
       setError("The sign-in service is unavailable. Please try again.");
     } finally {
       setPending(false);
     }
-  }
-
-  function useDemoAccount() {
-    setEmail(demoCredentials.email);
-    setPassword(demoCredentials.password);
-    setError("");
   }
 
   return (
@@ -76,7 +63,7 @@ export function LoginForm() {
           <p className="mt-6 max-w-[490px] text-sm font-medium leading-7 text-blue-100/65">FinPilot turns source documents into verified accounting entries, while you stay in control of every exception and approval.</p>
 
           <div className="mt-10 grid max-w-[520px] gap-3 sm:grid-cols-3">
-            {[{ icon: FileCheck2, value: "87%", label: "automated" }, { icon: ShieldCheck, value: "100%", label: "traceable" }, { icon: Bot, value: "24/7", label: "copilot" }].map((item) => <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur-sm"><item.icon className="h-5 w-5 text-[#2bd1f2]" /><strong className="mt-4 block text-xl font-extrabold tracking-[-0.04em]">{item.value}</strong><span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.14em] text-blue-100/45">{item.label}</span></div>)}
+            {[{ icon: FileCheck2, value: "Automated", label: "workflows" }, { icon: ShieldCheck, value: "Auditable", label: "records" }, { icon: Bot, value: "Explainable", label: "copilot" }].map((item) => <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur-sm"><item.icon className="h-5 w-5 text-[#2bd1f2]" /><strong className="mt-4 block text-sm font-extrabold tracking-[-0.02em]">{item.value}</strong><span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.14em] text-blue-100/45">{item.label}</span></div>)}
           </div>
         </div>
 
@@ -111,19 +98,10 @@ export function LoginForm() {
                 <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"} className="focus-ring absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
               </div>
 
-              <label className="mt-4 inline-flex cursor-pointer items-center gap-2.5 text-[10px] font-semibold text-slate-500"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} className="h-4 w-4 rounded accent-[#0b1838]" />Keep me signed in on this device</label>
-
               {error && <div role="alert" aria-live="polite" className="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-100 bg-rose-50 px-3.5 py-3 text-[10px] font-semibold leading-4 text-rose-700"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
 
               <button type="submit" disabled={pending} className="focus-ring mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0b1838] text-[11px] font-extrabold text-white shadow-[0_10px_24px_rgba(11,24,56,0.18)] transition-all hover:bg-[#142754] disabled:cursor-not-allowed disabled:opacity-45">{pending ? <><Loader2 className="h-4 w-4 animate-spin" />Signing in…</> : <>Sign in to workspace <ArrowRight className="h-4 w-4" /></>}</button>
 
-              <div className="my-6 flex items-center gap-3"><span className="h-px flex-1 bg-slate-100" /><span className="text-[8px] font-extrabold uppercase tracking-[0.16em] text-slate-300">Hackathon demo</span><span className="h-px flex-1 bg-slate-100" /></div>
-
-              <button type="button" onClick={useDemoAccount} className="focus-ring flex w-full items-center gap-3 rounded-xl border border-[#dcecf1] bg-[#f4fbfd] px-3.5 py-3 text-left hover:border-[#b6dfeb]">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[#0793ba] shadow-sm"><Sparkles className="h-4 w-4" /></span>
-                <span className="min-w-0 flex-1"><b className="block text-[10px] text-[#0b1838]">Use demo account</b><span className="mt-0.5 block truncate text-[9px] font-medium text-slate-400">admin@finpilot.ai · demo2026</span></span>
-                <Check className={`h-4 w-4 ${email === demoCredentials.email && password === demoCredentials.password ? "text-emerald-500" : "text-slate-300"}`} />
-              </button>
             </form>
 
             <p className="mt-6 text-center text-[9px] font-medium leading-4 text-slate-400">By signing in, you agree to FinPilot’s <button className="font-bold text-slate-600 hover:underline">Terms of Service</button> and <button className="font-bold text-slate-600 hover:underline">Privacy Policy</button>.</p>

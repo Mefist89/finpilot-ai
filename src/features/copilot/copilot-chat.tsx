@@ -8,14 +8,14 @@ type Source = { id: string; label: string; type: "document" | "entry" };
 type Message = { role: "user" | "assistant"; text: string; amount?: string; sources?: Source[]; bullets?: string[] };
 
 const suggestions = [
-  { icon: BarChart3, text: "What were our September expenses?" },
+  { icon: BarChart3, text: "Summarize the current reporting period" },
   { icon: ReceiptText, text: "Show unpaid supplier invoices" },
-  { icon: TrendingUp, text: "Why did costs increase?" },
+  { icon: TrendingUp, text: "Explain recent cost changes" },
   { icon: MessageCircleQuestion, text: "Which documents need review?" },
 ];
 
 export function CopilotChat({ initialQuery = "" }: { initialQuery?: string }) {
-  const [messages, setMessages] = useState<Message[]>([{ role: "assistant", text: "Hi Ana — I’m ready to answer questions using Nordic Retail’s verified ledger and documents. I’ll always show the records behind every number." }]);
+  const [messages, setMessages] = useState<Message[]>([{ role: "assistant", text: "Connect a verified ledger and document source before asking financial questions." }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const sentInitial = useRef(false);
@@ -29,7 +29,7 @@ export function CopilotChat({ initialQuery = "" }: { initialQuery?: string }) {
     try {
       const response = await fetch("/api/v1/copilot/query", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: clean }) });
       const result = await response.json();
-      setMessages((current) => [...current, { role: "assistant", text: result.answer, amount: result.amount, bullets: result.bullets, sources: result.sources }]);
+      setMessages((current) => [...current, { role: "assistant", text: response.ok ? result.answer : result.message ?? "Copilot is not available yet.", amount: result.amount, bullets: result.bullets, sources: result.sources }]);
     } catch {
       setMessages((current) => [...current, { role: "assistant", text: "I couldn’t reach the analytics service. Please try again." }]);
     } finally {
@@ -59,7 +59,7 @@ export function CopilotChat({ initialQuery = "" }: { initialQuery?: string }) {
       </aside>
 
       <section className="flex min-w-0 flex-col bg-[#f8f9fc]">
-        <div className="border-b border-[#e7eaf1] bg-white px-5 py-4 sm:px-8"><div className="mx-auto flex max-w-[920px] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0b1838] text-[#25d0f2]"><Bot className="h-5 w-5" /></span><div><h1 className="text-[14px] font-extrabold text-[#0b1838]">FinPilot Copilot</h1><p className="mt-0.5 flex items-center gap-1.5 text-[9px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Connected to Nordic Retail · data through Sep 30, 2026</p></div></div></div>
+        <div className="border-b border-[#e7eaf1] bg-white px-5 py-4 sm:px-8"><div className="mx-auto flex max-w-[920px] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0b1838] text-[#25d0f2]"><Bot className="h-5 w-5" /></span><div><h1 className="text-[14px] font-extrabold text-[#0b1838]">FinPilot Copilot</h1><p className="mt-0.5 flex items-center gap-1.5 text-[9px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-slate-300" />Waiting for a connected data source</p></div></div></div>
 
         <div className="flex-1 overflow-y-auto px-4 py-7 sm:px-8">
           <div className="mx-auto max-w-[920px] space-y-6">
