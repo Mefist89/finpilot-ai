@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FinPilot AI
 
-## Getting Started
+Hackathon MVP for an explainable, human-in-the-loop accounting assistant for Moldovan small businesses.
 
-First, run the development server:
+## Implemented demo flow
+
+1. Sign in through the demo authentication screen.
+2. Review business health on the dashboard.
+3. Upload and filter source documents in the Document Inbox.
+4. Compare an invoice with extracted fields and source evidence.
+5. Inspect the deterministic accounting proposal and confirm posting.
+6. Trace the entry in the ledger.
+7. Ask Copilot questions backed by source documents and entries.
+
+The current version uses a synthetic demo tenant and in-memory fixtures. It deliberately separates document receipt, accounting posting and payment status.
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. Production verification:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run lint
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Demo account: `admin@finpilot.ai` / `demo2026`.
 
-## Learn More
+## Stack
 
-To learn more about Next.js, take a look at the following resources:
+- Next.js 16 App Router, React 19 and TypeScript
+- Tailwind CSS 4
+- Zod-validated API request for Copilot
+- Lucide icons
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API demo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `GET /api/v1/analytics/summary`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/copilot/query` with `{ "query": "What were our September expenses?" }`
 
-## Deploy on Vercel
+## Next implementation slice
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Replace fixtures with PostgreSQL, add immutable object storage and connect the document-processing adapter to OCR/vision. Posting must stay behind the existing validation and approval gate.
