@@ -1,25 +1,33 @@
-import { Download, ReceiptText } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
+import { OperationJournal } from "@/features/ledger/operation-journal";
+import { createClient } from "@/utils/supabase/server";
 
-const totals = [
-  { label: "Total debits", value: "0.00", hint: "0 lines" },
-  { label: "Total credits", value: "0.00", hint: "0 lines" },
-  { label: "Balance check", value: "0.00", hint: "No entries" },
-];
+export default async function LedgerPage() {
+  const supabase = await createClient();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
 
-export default function LedgerPage() {
+  if (userError || !userData.user) {
+    redirect("/login");
+  }
+
+  const [accountsResult, entriesResult, linesResult, documentsResult, profileResult] = await Promise.all([
+    supabase.from("accounts").select("id,code,name,account_type,is_active").order("code"),
+    supabase.from("ledger_entries").select("id,entry_number,entry_date,description,status,source_document_id,created_at").order("entry_date", { ascending: false }).order("entry_number", { ascending: false }),
+    supabase.from("ledger_lines").select("id,entry_id,account_id,line_number,debit,credit,currency").order("line_number"),
+    supabase.from("documents").select("id,original_filename,document_number,issue_date,status").order("created_at", { ascending: false }).limit(100),
+    supabase.from("profiles").select("base_currency").eq("id", userData.user.id).maybeSingle(),
+  ]);
+
+  const loadError = [accountsResult.error, entriesResult.error, linesResult.error, documentsResult.error].some(Boolean)
+    ? "Unele date din jurnal nu au putut fi încărcate. Reîncărcați pagina."
+    : "";
+
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 lg:px-9 lg:py-9">
-      <PageHeader eyebrow="Accounting records" title="General ledger" description="Trace every posting back to its source document, rule and approval." actions={<button disabled className="flex h-10 cursor-not-allowed items-center gap-2 rounded-xl bg-[#0b1838] px-4 text-xs font-bold text-white opacity-40"><Download className="h-4 w-4" />Export ledger</button>} />
-
-      <section className="mt-7 grid gap-3 sm:grid-cols-3">
-        {totals.map((item) => <article key={item.label} className="card-shadow rounded-2xl border border-[#e8ebf2] bg-white p-5"><p className="text-[10px] font-bold text-slate-400">{item.label}</p><p className="mt-2 text-xl font-extrabold tracking-[-0.04em] text-[#0b1838]">{item.value}</p><p className="mt-2 text-[9px] font-bold text-slate-400">{item.hint}</p></article>)}
-      </section>
-
-      <section className="card-shadow mt-4 grid min-h-[360px] place-items-center rounded-2xl border border-[#e8ebf2] bg-white p-6 text-center">
-        <div><ReceiptText className="mx-auto h-10 w-10 text-slate-300" /><h2 className="mt-4 text-sm font-extrabold text-[#0b1838]">No ledger entries</h2><p className="mx-auto mt-2 max-w-md text-[11px] leading-5 text-slate-400">Posted accounting entries will appear here after the database and posting workflow are connected.</p></div>
-      </section>
+      <PageHeader eyebrow="Registre contabile" title="Jurnalul operațiunilor" description="Înregistrați fiecare operațiune prin debit și credit și păstrați legătura cu documentul-sursă." />
+      <OperationJournal accounts={accountsResult.data ?? []} documents={documentsResult.data ?? []} entries={entriesResult.data ?? []} lines={linesResult.data ?? []} baseCurrency={profileResult.data?.base_currency ?? "MDL"} loadError={loadError} />
     </div>
   );
 }

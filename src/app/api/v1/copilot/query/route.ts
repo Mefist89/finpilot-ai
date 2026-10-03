@@ -10,14 +10,14 @@ export async function POST(request: Request) {
   const { data } = await supabase.auth.getClaims();
 
   if (!data?.claims) {
-    return NextResponse.json({ error: "UNAUTHORIZED", message: "Sign in to use Copilot." }, { status: 401 });
+    return NextResponse.json({ error: "UNAUTHORIZED", message: "Autentificați-vă pentru a utiliza Copilotul." }, { status: 401 });
   }
 
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "INVALID_QUERY", message: "A valid query is required." },
+      { error: "INVALID_QUERY", message: "Introduceți o întrebare validă." },
       { status: 400 },
     );
   }
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       error: "DATA_SOURCE_NOT_CONFIGURED",
-      message: "Copilot is not available until the ledger data source is connected.",
+      message: "Copilotul va fi disponibil după conectarea datelor din jurnalul contabil.",
     },
     { status: 503 },
   );

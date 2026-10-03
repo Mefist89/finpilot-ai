@@ -8,13 +8,13 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "FinPilot AI — Autonomous Accounting",
-  description: "AI-powered accounting workspace for small businesses.",
+  title: "FinPilot AI — Contabilitate automatizată",
+  description: "Spațiu de lucru contabil asistat de inteligență artificială pentru întreprinderi mici.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${manrope.variable} h-full antialiased`}>
+    <html lang="ro" className={`${manrope.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

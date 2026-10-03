@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { code: "INVALID_INPUT", message: "Enter a valid email address and password." },
+      { code: "INVALID_INPUT", message: "Introduceți o adresă de e-mail validă și parola." },
       { status: 400 },
     );
   }
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   if (error || !data.user) {
     return NextResponse.json(
-      { code: "INVALID_CREDENTIALS", message: "Incorrect email or password." },
+      { code: "INVALID_CREDENTIALS", message: "Adresa de e-mail sau parola este incorectă." },
       { status: 401 },
     );
   }

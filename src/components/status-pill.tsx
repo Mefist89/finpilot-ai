@@ -9,8 +9,9 @@ const styles: Record<DocumentStatus, string> = {
 };
 
 const icons = { Ready: CircleCheck, "Needs review": TriangleAlert, Posted: CircleCheck, Processing: Clock3 } satisfies Record<DocumentStatus, typeof ScanSearch>;
+const labels: Record<DocumentStatus, string> = { Ready: "Pregătit", "Needs review": "Necesită verificare", Posted: "Contabilizat", Processing: "În procesare" };
 
 export function StatusPill({ status }: { status: DocumentStatus }) {
   const Icon = icons[status];
-  return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${styles[status]}`}><Icon className="h-3.5 w-3.5" />{status}</span>;
+  return <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${styles[status]}`}><Icon className="h-3.5 w-3.5" />{labels[status]}</span>;
 }

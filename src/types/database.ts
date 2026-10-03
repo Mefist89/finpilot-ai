@@ -403,7 +403,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_journal_entry: {
+        Args: {
+          p_amount: number
+          p_credit_account_id: string
+          p_currency: string
+          p_debit_account_id: string
+          p_description: string
+          p_entry_date: string
+          p_source_document_id: string | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       account_type:
