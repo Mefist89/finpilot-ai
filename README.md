@@ -37,9 +37,9 @@ Registrul va conține înregistrările contabile aprobate, liniile de debit și 
 
 Copilot este interfața conversațională a aplicației. El va răspunde la întrebări despre cheltuieli, facturi, plăți și registrul contabil. Răspunsurile numerice trebuie calculate din datele stocate, iar sursele folosite trebuie afișate utilizatorului.
 
-### Setări și organizații
+### Setări
 
-Fiecare companie va avea propriul spațiu de lucru, membri, roluri, monedă de bază și politici contabile. Datele organizațiilor sunt izolate prin politici Row Level Security.
+Aplicația folosește un singur spațiu de lucru personal. Utilizatorul își poate configura profilul companiei, moneda de bază, anul fiscal, planul de conturi și politicile de automatizare. Nu există organizații, membri sau roluri separate.
 
 ## Starea actuală
 
@@ -54,7 +54,8 @@ Fiecare companie va avea propriul spațiu de lucru, membri, roluri, monedă de b
 - stări goale pentru panoul de control, documente, registru și Copilot;
 - validarea cererilor API cu Zod;
 - migrarea inițială pentru baza de date Supabase;
-- politici RLS pentru izolarea datelor între organizații.
+- un bucket privat Supabase Storage pentru documentele originale;
+- politici RLS prin care utilizatorul autentificat accesează doar propriile date.
 
 Proiectul nu conține utilizatori demonstrativi, parole demonstrative, companii fictive, documente contabile fictive sau valori financiare prestabilite.
 
@@ -72,7 +73,7 @@ Browser
           ├── Auth
           ├── PostgreSQL
           ├── Row Level Security
-          └── Storage — planificat pentru documente
+          └── Storage — bucket privat pentru documente
 ```
 
 ## Tehnologii
@@ -106,27 +107,28 @@ supabase/
 
 Migrarea din `supabase/migrations` definește următoarele entități:
 
-- `organizations` — companiile care folosesc aplicația;
-- `organization_members` — utilizatorii, organizațiile și rolurile lor;
+- `profiles` — profilul utilizatorului și datele companiei;
+- `app_settings` — preferințele de automatizare și notificări;
 - `documents` — metadatele documentelor încărcate;
 - `document_extractions` — rezultatele extragerii OCR/AI;
+- `accounts` — planul de conturi al utilizatorului;
 - `ledger_entries` — antetele înregistrărilor contabile;
 - `ledger_lines` — liniile de debit și credit;
 - `audit_events` — istoricul acțiunilor importante.
 
-Rolurile disponibile sunt `owner`, `admin`, `accountant`, `reviewer` și `viewer`.
+Fiecare tabel operațional conține `user_id`. Nu există roluri sau drepturi diferențiate: utilizatorul autentificat administrează propriul spațiu de lucru, iar RLS împiedică accesul la datele altui cont. Fișierele sunt păstrate în bucketul privat `documents`, în directorul identificat prin ID-ul utilizatorului.
 
 ## Securitate
 
 - Accesul la spațiul de lucru necesită o sesiune Supabase validă.
 - Endpointurile financiare răspund cu `401 Unauthorized` pentru utilizatorii neautentificați.
 - Toate tabelele expuse folosesc Row Level Security.
-- Un utilizator poate vedea doar datele organizațiilor din care face parte.
-- Operațiunile contabile sunt limitate în funcție de rol.
+- Un utilizator poate vedea și modifica doar propriile date.
+- Nu există separare pe roluri; controlul accesului se bazează exclusiv pe proprietarul datelor.
 - Cheile privilegiate Supabase nu trebuie expuse în browser.
 - Fișierul `.env.local` este exclus din Git.
 
-Migrarea bazei de date este pregătită local, dar trebuie aplicată explicit proiectului Supabase înainte ca tabelele să fie disponibile.
+Migrațiile sunt aplicate proiectului Supabase configurat, iar schema locală din `supabase/migrations` corespunde istoricului remote.
 
 ## Configurarea mediului
 
@@ -208,21 +210,18 @@ Endpointul necesită autentificare. Până la conectarea registrului contabil, r
 - Fiecare răspuns financiar trebuie să poată indica sursa.
 - Înregistrările contabile trebuie validate înainte de postare.
 - Acțiunile importante trebuie păstrate în jurnalul de audit.
-- Datele organizațiilor trebuie izolate la nivelul bazei de date.
+- Datele fiecărui utilizator trebuie izolate la nivelul bazei de date.
 - Migrațiile nu trebuie să conțină date demonstrative sau credențiale.
 
 ## Următorii pași
 
-1. Aplicarea migrării inițiale în proiectul Supabase.
-2. Crearea fluxului de înregistrare și configurare a primei organizații.
-3. Conectarea listei de documente la PostgreSQL.
-4. Configurarea Supabase Storage pentru fișierele originale.
-5. Implementarea încărcării și verificării fișierelor.
-6. Conectarea unui serviciu OCR/vision.
-7. Implementarea regulilor contabile și a fluxului de aprobare.
-8. Calcularea indicatorilor financiari din registrul real.
-9. Conectarea Copilot la sursele verificate.
-10. Adăugarea testelor automate și a monitorizării.
+1. Conectarea listei de documente la PostgreSQL.
+2. Implementarea încărcării și verificării fișierelor în bucketul privat.
+3. Conectarea unui serviciu OCR/vision.
+4. Implementarea regulilor contabile și a fluxului de aprobare.
+5. Calcularea indicatorilor financiari din registrul real.
+6. Conectarea Copilot la sursele verificate.
+7. Adăugarea testelor automate și a monitorizării.
 
 ## Verificarea proiectului
 
