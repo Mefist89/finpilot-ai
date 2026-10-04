@@ -1,6 +1,6 @@
 "use client";
 
-import { Calculator, CalendarDays, Download, FileSpreadsheet, LoaderCircle, Plus, Search, X } from "lucide-react";
+import { Calculator, CalendarDays, Download, FileDown, FileSpreadsheet, LoaderCircle, Plus, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
@@ -83,11 +83,57 @@ export function PriceSheetRegister({ invoices, invoiceItems, sheets, sheetItems,
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = `fise-stabilire-preturi-${today()}.csv`; anchor.click(); URL.revokeObjectURL(url);
   }
 
+  async function exportPdf() {
+    const [{ jsPDF }, autoTableModule] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+    const autoTable = autoTableModule.default;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    pdf.setProperties({ title: "Fișe de stabilire a prețurilor FinPilotAI", author: "FinPilotAI" });
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(11, 24, 56);
+    pdf.text("FinPilotAI — Fise de stabilire a preturilor", 14, 17);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(90, 105, 125);
+    pdf.text(`Generat la ${new Intl.DateTimeFormat("ro-MD", { dateStyle: "medium" }).format(new Date())}`, 14, 24);
+
+    const body: Array<Array<string | number>> = [];
+    visible.forEach((sheet) => {
+      const invoice = invoiceMap.get(sheet.purchase_invoice_id);
+      (itemsBySheet.get(sheet.id) ?? []).forEach((item) => body.push([
+        `FP-${String(sheet.sheet_number).padStart(5, "0")}`,
+        invoice?.invoice_number ?? "",
+        invoice?.counterparty_name ?? "",
+        item.product_name,
+        `${item.quantity} ${item.unit}`,
+        Number(item.purchase_price).toFixed(2),
+        Number(item.additional_cost).toFixed(2),
+        `${item.markup_percent}%`,
+        `${item.vat_rate}%`,
+        Number(item.sale_price).toFixed(2),
+        invoice?.currency ?? baseCurrency,
+      ]));
+    });
+
+    autoTable(pdf, {
+      startY: 30,
+      head: [["Fisa", "Factura", "Furnizor", "Produs", "Cantitate", "Pret achizitie", "Cost supl.", "Adaos", "TVA", "Pret nou", "Moneda"]],
+      body,
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 7, cellPadding: 2.2, textColor: [31, 45, 70] },
+      headStyles: { fillColor: [11, 24, 56], textColor: [255, 255, 255], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 249, 251] },
+      columnStyles: { 3: { cellWidth: 48 }, 9: { fontStyle: "bold", textColor: [7, 135, 173] } },
+      margin: { left: 14, right: 14 },
+    });
+    pdf.save(`fise-stabilire-preturi-${today()}.pdf`);
+  }
+
   return <>
     {loadError && <p role="alert" className="mt-6 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-[11px] font-bold text-rose-700">{loadError}</p>}
     <div className="mt-7 rounded-2xl border border-cyan-100 bg-[#effbfe] px-5 py-4"><div className="flex items-start gap-3"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[#0787ad]"><Calculator className="h-4 w-4" /></span><div><p className="text-[11px] font-extrabold text-[#0b1838]">Formula utilizată</p><p className="mt-1 text-[10px] font-semibold leading-5 text-[#087a9d]">(Preț de achiziție + cost suplimentar) × (1 + adaos comercial) × (1 + TVA) = preț de vânzare</p></div></div></div>
 
-    <div className="card-shadow mt-4 flex flex-col gap-3 rounded-2xl border border-[#e8ebf2] bg-white p-3 sm:flex-row sm:items-center"><div className="relative flex-1 sm:max-w-[320px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută fișe, facturi, produse..." className="focus-ring h-10 w-full rounded-xl border border-[#e5e9f0] bg-[#fafbfc] pl-9 pr-3 text-[11px]" /></div><div className="ml-auto flex gap-2"><button onClick={exportCsv} disabled={!visible.length} className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl border border-[#dfe4ec] px-4 text-[10px] font-extrabold text-slate-600 disabled:opacity-40"><Download className="h-4 w-4" />Exportă CSV</button><button onClick={openCreate} disabled={!availableInvoices.length} className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white disabled:opacity-40"><Plus className="h-4 w-4" />Fișă nouă</button></div></div>
+    <div className="card-shadow mt-4 flex flex-col gap-3 rounded-2xl border border-[#e8ebf2] bg-white p-3 sm:flex-row sm:items-center"><div className="relative flex-1 sm:max-w-[320px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută fișe, facturi, produse..." className="focus-ring h-10 w-full rounded-xl border border-[#e5e9f0] bg-[#fafbfc] pl-9 pr-3 text-[11px]" /></div><div className="ml-auto flex flex-wrap gap-2"><button onClick={exportCsv} disabled={!visible.length} className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl border border-[#dfe4ec] px-4 text-[10px] font-extrabold text-slate-600 disabled:opacity-40"><Download className="h-4 w-4" />Exportă CSV</button><button onClick={() => void exportPdf()} disabled={!visible.length} className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl border border-[#dfe4ec] px-4 text-[10px] font-extrabold text-slate-600 disabled:opacity-40"><FileDown className="h-4 w-4" />Exportă PDF</button><button onClick={openCreate} disabled={!availableInvoices.length} className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white disabled:opacity-40"><Plus className="h-4 w-4" />Fișă nouă</button></div></div>
 
     {!availableInvoices.length && invoices.length === 0 && <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-[10px] font-semibold text-amber-800">Pentru a crea o fișă de preț, adăugați mai întâi o factură în Registrul de procurări.</div>}
 

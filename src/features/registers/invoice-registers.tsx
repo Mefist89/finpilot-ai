@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CheckCircle2, Download, FileInput, FileOutput, LoaderCircle, Plus, ScanLine, Search, Sparkles, Tags, Trash2, UploadCloud, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, Download, FileDown, FileInput, FileOutput, LoaderCircle, Plus, ScanLine, Search, Sparkles, Tags, Trash2, UploadCloud, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useRef, useState } from "react";
@@ -182,6 +182,44 @@ export function InvoiceRegisters({ invoices, items, baseCurrency, loadError }: P
     URL.revokeObjectURL(url);
   }
 
+  async function exportPdf() {
+    const [{ jsPDF }, autoTableModule] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const registerName = direction === "purchase" ? "Registrul de procurari" : "Registrul de vanzari";
+    pdf.setProperties({ title: `${registerName} FinPilotAI`, author: "FinPilotAI" });
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(11, 24, 56);
+    pdf.text(`FinPilotAI — ${registerName}`, 14, 17);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(90, 105, 125);
+    pdf.text(`Generat: ${today()} | Total: ${Number(totals.total).toFixed(2)} ${baseCurrency}`, 14, 24);
+
+    autoTableModule.default(pdf, {
+      startY: 30,
+      head: [["Data", "Factura", direction === "purchase" ? "Furnizor" : "Client", "IDNO", "Produse", "Fara TVA", "TVA", "Total", "Moneda"]],
+      body: visible.map((invoice) => [
+        invoice.issue_date,
+        invoice.invoice_number,
+        invoice.counterparty_name,
+        invoice.counterparty_tax_id ?? "",
+        (itemsByInvoice.get(invoice.id) ?? []).map((item) => item.product_name).join(", "),
+        Number(invoice.subtotal).toFixed(2),
+        Number(invoice.vat_amount).toFixed(2),
+        Number(invoice.total_amount).toFixed(2),
+        invoice.currency,
+      ]),
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 7, cellPadding: 2.2, textColor: [31, 45, 70] },
+      headStyles: { fillColor: [11, 24, 56], textColor: [255, 255, 255], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 249, 251] },
+      columnStyles: { 4: { cellWidth: 58 }, 7: { fontStyle: "bold", textColor: [7, 135, 173] } },
+      margin: { left: 14, right: 14 },
+    });
+    pdf.save(`${direction === "purchase" ? "registru-procurari" : "registru-vanzari"}-${today()}.pdf`);
+  }
+
   return <>
     {loadError && <p role="alert" className="mt-6 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-[11px] font-bold text-rose-700">{loadError}</p>}
     {saveSuccessDirection && <div role="status" className="mt-6 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-[11px] font-extrabold text-emerald-900">Factura a fost salvată, iar propunerea contabilă a fost creată.</p><p className="mt-1 text-[10px] font-semibold text-emerald-700">{saveSuccessDirection === "purchase" ? "Verificați liniile Dt 217, Dt 5344 și Ct 521 înainte de contabilizare." : "Verificați liniile Dt 221, Ct 611 și Ct 5344 înainte de contabilizare."}</p></div><Link href="/ledger" className="focus-ring inline-flex h-9 shrink-0 items-center justify-center rounded-xl bg-emerald-700 px-4 text-[9px] font-extrabold text-white hover:bg-emerald-800">Deschide jurnalul</Link></div>}
@@ -197,7 +235,7 @@ export function InvoiceRegisters({ invoices, items, baseCurrency, loadError }: P
         <button onClick={() => setDirection("purchase")} className={`focus-ring flex h-10 items-center gap-2 rounded-xl px-4 text-[11px] font-extrabold ${direction === "purchase" ? "bg-[#0b1838] text-white" : "text-slate-500 hover:bg-slate-50"}`}><FileInput className="h-4 w-4" />Registrul de procurări</button>
         <button onClick={() => setDirection("sale")} className={`focus-ring flex h-10 items-center gap-2 rounded-xl px-4 text-[11px] font-extrabold ${direction === "sale" ? "bg-[#0b1838] text-white" : "text-slate-500 hover:bg-slate-50"}`}><FileOutput className="h-4 w-4" />Registrul de vânzări</button>
       </div>
-      <div className="flex flex-col gap-2 sm:flex-row"><div className="relative sm:w-[260px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută facturi, parteneri..." className="focus-ring h-10 w-full rounded-xl border border-[#e5e9f0] bg-[#fafbfc] pl-9 pr-3 text-[11px] font-medium text-[#0b1838]" /></div><button onClick={exportCsv} disabled={!visible.length} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#dfe4ec] px-4 text-[10px] font-extrabold text-slate-600 disabled:opacity-40"><Download className="h-4 w-4" />Exportă CSV</button><button onClick={openCreate} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white"><Plus className="h-4 w-4" />{direction === "purchase" ? "Factură primită" : "Factură emisă"}</button></div>
+      <div className="flex flex-col gap-2 sm:flex-row"><div className="relative sm:w-[260px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută facturi, parteneri..." className="focus-ring h-10 w-full rounded-xl border border-[#e5e9f0] bg-[#fafbfc] pl-9 pr-3 text-[11px] font-medium text-[#0b1838]" /></div><button onClick={exportCsv} disabled={!visible.length} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#dfe4ec] px-4 text-[10px] font-extrabold text-slate-600 disabled:opacity-40"><Download className="h-4 w-4" />Exportă CSV</button><button onClick={() => void exportPdf()} disabled={!visible.length} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#dfe4ec] px-4 text-[10px] font-extrabold text-slate-600 disabled:opacity-40"><FileDown className="h-4 w-4" />Exportă PDF</button><button onClick={openCreate} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white"><Plus className="h-4 w-4" />{direction === "purchase" ? "Factură primită" : "Factură emisă"}</button></div>
     </div>
 
     <section className="card-shadow mt-4 overflow-hidden rounded-2xl border border-[#e8ebf2] bg-white">

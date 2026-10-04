@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, CheckCircle2, Download, FileText, Landmark, LoaderCircle, Plus, ReceiptText, Search, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, CheckCircle2, Download, FileDown, FileText, Landmark, LoaderCircle, Plus, ReceiptText, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
@@ -153,6 +153,53 @@ export function OperationJournal({ accounts, documents, entries, lines, baseCurr
     URL.revokeObjectURL(url);
   }
 
+  async function exportPdf() {
+    const [{ jsPDF }, autoTableModule] = await Promise.all([import("jspdf"), import("jspdf-autotable")]);
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    pdf.setProperties({ title: "Jurnalul operatiunilor FinPilotAI", author: "FinPilotAI" });
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(11, 24, 56);
+    pdf.text("FinPilotAI — Jurnalul operatiunilor", 14, 17);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(90, 105, 125);
+    pdf.text(`Generat: ${today()} | Debit: ${totalDebit.toFixed(2)} ${baseCurrency} | Credit: ${totalCredit.toFixed(2)} ${baseCurrency}`, 14, 24);
+
+    const body: string[][] = [];
+    visibleEntries.forEach((entry) => {
+      const source = entry.source_document_id ? documentMap.get(entry.source_document_id) : undefined;
+      (linesByEntry.get(entry.id) ?? []).forEach((line) => {
+        const account = accountMap.get(line.account_id);
+        body.push([
+          entry.entry_date,
+          `OP-${String(entry.entry_number).padStart(5, "0")}`,
+          entry.description,
+          account?.code ?? "",
+          account?.name ?? "",
+          Number(line.debit).toFixed(2),
+          Number(line.credit).toFixed(2),
+          line.currency,
+          statusLabels[entry.status],
+          source?.document_number || source?.original_filename || "",
+        ]);
+      });
+    });
+
+    autoTableModule.default(pdf, {
+      startY: 30,
+      head: [["Data", "Nr.", "Descriere", "Cont", "Denumire cont", "Debit", "Credit", "Moneda", "Statut", "Document"]],
+      body,
+      theme: "grid",
+      styles: { font: "helvetica", fontSize: 6.8, cellPadding: 2, textColor: [31, 45, 70] },
+      headStyles: { fillColor: [11, 24, 56], textColor: [255, 255, 255], fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 249, 251] },
+      columnStyles: { 2: { cellWidth: 54 }, 4: { cellWidth: 42 }, 5: { halign: "right" }, 6: { halign: "right" } },
+      margin: { left: 10, right: 10 },
+    });
+    pdf.save(`jurnal-operatiuni-${today()}.pdf`);
+  }
+
   return <>
     {loadError && <p role="alert" className="mt-6 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-[11px] font-bold text-rose-700">{loadError}</p>}
 
@@ -166,7 +213,7 @@ export function OperationJournal({ accounts, documents, entries, lines, baseCurr
 
     <div className="card-shadow mt-4 flex flex-col gap-3 rounded-2xl border border-[#e8ebf2] bg-white p-3 lg:flex-row lg:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pb-1 lg:pb-0">{filters.map((item) => <button key={item} onClick={() => setFilter(item)} className={`focus-ring whitespace-nowrap rounded-lg px-3.5 py-2 text-[10px] font-bold transition-colors ${filter === item ? "bg-[#0b1838] text-white" : "text-slate-500 hover:bg-slate-50"}`}>{item === "all" ? "Toate" : statusLabels[item]}</button>)}</div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center"><div className="relative min-w-0 flex-1 sm:w-[260px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută operațiuni, conturi..." className="focus-ring h-10 w-full rounded-xl border border-[#e5e9f0] bg-[#fafbfc] pl-9 pr-3 text-[11px] font-medium text-[#0b1838] placeholder:text-slate-400" /></div><button onClick={exportCsv} disabled={visibleEntries.length === 0} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#dfe4ec] bg-white px-4 text-[10px] font-extrabold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><Download className="h-4 w-4" />Exportă CSV</button><button onClick={openCreateForm} disabled={activeAccounts.length < 2} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white hover:bg-[#142754] disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-4 w-4" />Operațiune nouă</button></div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center"><div className="relative min-w-0 flex-1 sm:w-[260px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută operațiuni, conturi..." className="focus-ring h-10 w-full rounded-xl border border-[#e5e9f0] bg-[#fafbfc] pl-9 pr-3 text-[11px] font-medium text-[#0b1838] placeholder:text-slate-400" /></div><button onClick={exportCsv} disabled={visibleEntries.length === 0} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#dfe4ec] bg-white px-4 text-[10px] font-extrabold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><Download className="h-4 w-4" />Exportă CSV</button><button onClick={() => void exportPdf()} disabled={visibleEntries.length === 0} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#dfe4ec] bg-white px-4 text-[10px] font-extrabold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><FileDown className="h-4 w-4" />Exportă PDF</button><button onClick={openCreateForm} disabled={activeAccounts.length < 2} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white hover:bg-[#142754] disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-4 w-4" />Operațiune nouă</button></div>
     </div>
 
     {actionError && <p role="alert" className="mt-4 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-[10px] font-bold text-rose-700">{actionError}</p>}

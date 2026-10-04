@@ -9,4 +9,12 @@ export type DocumentRecord = {
   amount: string;
   status: DocumentStatus;
   confidence: number;
+  documentNumber: string;
+  counterpartyTaxId: string;
+  issueDate: string;
+  dueDate: string;
+  currency: string;
+  subtotal: number | null;
+  vatAmount: number | null;
+  totalAmount: number | null;
 };

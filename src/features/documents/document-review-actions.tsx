@@ -22,6 +22,7 @@ export function DocumentReviewActions({ documentId, verified }: { documentId: st
       return;
     }
     await supabase.from("audit_events").insert({ entity_type: "document", entity_id: documentId, action: "verified", metadata: {} });
+    await fetch("/api/v1/registers/sync", { method: "POST" });
     setSaving(false);
     router.refresh();
   }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/page-header";
 import { InvoiceRegisters } from "@/features/registers/invoice-registers";
+import { VerifiedDocumentSync } from "@/features/registers/verified-document-sync";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function RegistersPage() {
@@ -22,6 +23,7 @@ export default async function RegistersPage() {
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 lg:px-9 lg:py-9">
       <PageHeader eyebrow="Evidența TVA" title="Registrele facturilor" description="Înregistrați facturile primite și emise. Registrele de procurări și vânzări se formează automat." />
+      <VerifiedDocumentSync />
       <InvoiceRegisters invoices={invoicesResult.data ?? []} items={itemsResult.data ?? []} baseCurrency={profileResult.data?.base_currency ?? "MDL"} loadError={loadError} />
     </div>
   );

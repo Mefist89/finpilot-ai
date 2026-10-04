@@ -23,7 +23,7 @@ function formatMoney(value: number | null, currency: string | null) {
 
 export default async function DocumentsPage() {
   const supabase = await createClient();
-  const { data } = await supabase.from("documents").select("id,original_filename,document_type,counterparty_name,issue_date,total_amount,currency,status,confidence").order("created_at", { ascending: false });
+  const { data } = await supabase.from("documents").select("id,original_filename,document_type,document_number,counterparty_name,counterparty_tax_id,issue_date,due_date,currency,subtotal,vat_amount,total_amount,status,confidence").order("created_at", { ascending: false });
   const documents: DocumentRecord[] = (data ?? []).map((document) => ({
     id: document.id,
     fileName: document.original_filename,
@@ -33,6 +33,14 @@ export default async function DocumentsPage() {
     amount: formatMoney(document.total_amount, document.currency),
     status: status(document.status),
     confidence: document.confidence === null ? 0 : Math.round(Number(document.confidence) * 100),
+    documentNumber: document.document_number || "",
+    counterpartyTaxId: document.counterparty_tax_id || "",
+    issueDate: document.issue_date || "",
+    dueDate: document.due_date || "",
+    currency: document.currency || "MDL",
+    subtotal: document.subtotal === null ? null : Number(document.subtotal),
+    vatAmount: document.vat_amount === null ? null : Number(document.vat_amount),
+    totalAmount: document.total_amount === null ? null : Number(document.total_amount),
   }));
 
   return (
