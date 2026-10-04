@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, BarChart3, Bot, FileCheck2, FileText, Lightbulb, Loader2, Mic, ReceiptText, ShieldCheck, Tags, UserRound } from "lucide-react";
+import { AlertTriangle, ArrowUp, BarChart3, Bot, FileCheck2, FileText, Lightbulb, Loader2, Mic, ReceiptText, ShieldCheck, Tags, Trash2, UserRound, X } from "lucide-react";
 
 export type Source = { id: string; label: string; type: "document" | "entry" | "invoice" | "price"; href: string };
 export type Message = { role: "user" | "assistant"; text: string; amount?: string; sources?: Source[]; bullets?: string[] };
@@ -20,6 +20,9 @@ export function CopilotChat({ initialQuery = "", initialMessages = [] }: { initi
   const [messages, setMessages] = useState<Message[]>(initialMessages.length > 0 ? initialMessages : [welcomeMessage]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const sentInitial = useRef(false);
 
   const ask = useCallback(async (question: string) => {
@@ -52,6 +55,26 @@ export function CopilotChat({ initialQuery = "", initialMessages = [] }: { initi
     void ask(input);
   }
 
+  async function deleteConversation() {
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const response = await fetch("/api/v1/copilot/history", { method: "DELETE" });
+      const result = await response.json() as { deleted?: boolean; message?: string };
+      if (!response.ok || !result.deleted) {
+        setDeleteError(result.message || "Conversația nu a putut fi ștearsă.");
+        return;
+      }
+      setMessages([welcomeMessage]);
+      setInput("");
+      setDeleteOpen(false);
+    } catch {
+      setDeleteError("Conexiunea a eșuat. Încercați din nou.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="grid min-h-[calc(100vh-122px)] lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside className="hidden border-r border-[#e7eaf1] bg-white p-5 lg:block">
@@ -62,7 +85,7 @@ export function CopilotChat({ initialQuery = "", initialMessages = [] }: { initi
       </aside>
 
       <section className="flex min-w-0 flex-col bg-[#f8f9fc]">
-        <div className="border-b border-[#e7eaf1] bg-white px-5 py-4 sm:px-8"><div className="mx-auto flex max-w-[920px] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0b1838] text-[#25d0f2]"><Bot className="h-5 w-5" /></span><div><h1 className="text-[14px] font-extrabold text-[#0b1838]">FinPilot AI</h1><p className="mt-0.5 flex items-center gap-1.5 text-[9px] font-semibold text-emerald-600"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Conectat la datele contabile</p></div></div></div>
+        <div className="border-b border-[#e7eaf1] bg-white px-5 py-4 sm:px-8"><div className="mx-auto flex max-w-[920px] items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0b1838] text-[#25d0f2]"><Bot className="h-5 w-5" /></span><div><h1 className="text-[14px] font-extrabold text-[#0b1838]">FinPilot AI</h1><p className="mt-0.5 flex items-center gap-1.5 text-[9px] font-semibold text-emerald-600"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Conectat la datele contabile</p></div><button onClick={() => { setDeleteError(""); setDeleteOpen(true); }} disabled={loading || messages.length === 1 && messages[0] === welcomeMessage} className="ml-auto flex items-center gap-2 rounded-xl border border-[#e1e5ec] px-3 py-2.5 text-[10px] font-extrabold text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40" aria-label="Șterge conversația"><Trash2 className="h-3.5 w-3.5" /><span className="hidden sm:inline">Șterge conversația</span></button></div></div>
 
         <div className="flex-1 overflow-y-auto px-4 py-7 sm:px-8">
           <div className="mx-auto max-w-[920px] space-y-6">
@@ -81,6 +104,18 @@ export function CopilotChat({ initialQuery = "", initialMessages = [] }: { initi
           <form onSubmit={submit} className="mx-auto max-w-[920px]"><div className="flex items-end gap-2 rounded-2xl border border-[#dfe4eb] bg-white p-2 shadow-[0_8px_30px_rgba(23,42,84,0.08)] focus-within:border-[#13bfe9] focus-within:ring-2 focus-within:ring-cyan-100"><textarea value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void ask(input); } }} rows={1} placeholder="Întrebați despre cheltuieli, facturi sau jurnal..." className="max-h-28 min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-[11px] font-medium leading-5 text-[#0b1838] outline-none placeholder:text-slate-400" /><button disabled={!input.trim() || loading} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0b1838] text-white hover:bg-[#142754] disabled:cursor-not-allowed disabled:opacity-35" aria-label="Trimite întrebarea"><ArrowUp className="h-4 w-4" /></button></div><p className="mt-2 flex items-center justify-center gap-1.5 text-[8px] font-semibold text-slate-400"><Lightbulb className="h-3 w-3" />FinPilot poate greși. Verificați deciziile importante utilizând sursele asociate.</p></form>
         </div>
       </section>
+
+      {deleteOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[#0b1838]/45 p-4 backdrop-blur-sm" onMouseDown={(event) => event.currentTarget === event.target && !deleting && setDeleteOpen(false)}>
+          <div className="animate-float-in w-full max-w-[430px] rounded-3xl bg-white p-6 shadow-2xl sm:p-7">
+            <div className="flex items-start justify-between"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-red-50 text-red-600"><Trash2 className="h-5 w-5" /></span><button disabled={deleting} onClick={() => setDeleteOpen(false)} aria-label="Închide" className="rounded-lg p-2 text-slate-400 hover:bg-slate-50 disabled:opacity-50"><X className="h-5 w-5" /></button></div>
+            <h2 className="mt-5 text-lg font-extrabold tracking-tight text-[#0b1838]">Ștergeți conversația?</h2>
+            <p className="mt-2 text-[11px] font-medium leading-5 text-slate-500">Toate întrebările și răspunsurile FinPilot salvate în acest cont vor fi șterse definitiv. Documentele și datele contabile nu vor fi afectate.</p>
+            {deleteError && <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-[11px] font-bold text-red-700"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{deleteError}</div>}
+            <div className="mt-6 flex justify-end gap-2"><button disabled={deleting} onClick={() => setDeleteOpen(false)} className="rounded-xl border border-[#dfe4ec] px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Anulează</button><button disabled={deleting} onClick={() => void deleteConversation()} className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-red-700 disabled:cursor-wait disabled:opacity-65">{deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}{deleting ? "Se șterge..." : "Șterge conversația"}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
