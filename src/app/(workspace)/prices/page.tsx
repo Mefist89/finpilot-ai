@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/page-header";
 import { PriceSheetRegister } from "@/features/prices/price-sheet-register";
 import { createClient } from "@/utils/supabase/server";
 
-export default async function PricesPage() {
+export default async function PricesPage({ searchParams }: { searchParams: Promise<{ invoice?: string }> }) {
+  const { invoice: requestedInvoiceId = "" } = await searchParams;
   const supabase = await createClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) redirect("/login");
@@ -24,7 +25,7 @@ export default async function PricesPage() {
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 lg:px-9 lg:py-9">
       <PageHeader eyebrow="Gestiunea mărfurilor" title="Formarea prețurilor" description="Transformați prețul de achiziție din factura furnizorului în preț de vânzare documentat." />
-      <PriceSheetRegister invoices={invoicesResult.data ?? []} invoiceItems={invoiceItemsResult.data ?? []} sheets={sheetsResult.data ?? []} sheetItems={sheetItemsResult.data ?? []} baseCurrency={profileResult.data?.base_currency ?? "MDL"} loadError={loadError} />
+      <PriceSheetRegister invoices={invoicesResult.data ?? []} invoiceItems={invoiceItemsResult.data ?? []} sheets={sheetsResult.data ?? []} sheetItems={sheetItemsResult.data ?? []} baseCurrency={profileResult.data?.base_currency ?? "MDL"} loadError={loadError} initialInvoiceId={requestedInvoiceId} />
     </div>
   );
 }

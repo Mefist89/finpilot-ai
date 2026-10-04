@@ -118,6 +118,42 @@ export type Database = {
         }
         Relationships: []
       }
+      copilot_interactions: {
+        Row: {
+          amount: string | null
+          answer: string
+          bullets: Json
+          created_at: string
+          id: string
+          intent: string
+          question: string
+          sources: Json
+          user_id: string
+        }
+        Insert: {
+          amount?: string | null
+          answer: string
+          bullets?: Json
+          created_at?: string
+          id?: string
+          intent: string
+          question: string
+          sources?: Json
+          user_id?: string
+        }
+        Update: {
+          amount?: string | null
+          answer?: string
+          bullets?: Json
+          created_at?: string
+          id?: string
+          intent?: string
+          question?: string
+          sources?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_extractions: {
         Row: {
           completed_at: string | null
@@ -254,11 +290,13 @@ export type Database = {
       }
       invoices: {
         Row: {
+          amount_paid: number
           counterparty_name: string
           counterparty_tax_id: string | null
           created_at: string
           currency: string
           direction: Database["public"]["Enums"]["invoice_direction"]
+          due_date: string | null
           id: string
           invoice_number: string
           issue_date: string
@@ -272,11 +310,13 @@ export type Database = {
           vat_amount: number
         }
         Insert: {
+          amount_paid?: number
           counterparty_name: string
           counterparty_tax_id?: string | null
           created_at?: string
           currency?: string
           direction: Database["public"]["Enums"]["invoice_direction"]
+          due_date?: string | null
           id?: string
           invoice_number: string
           issue_date: string
@@ -290,11 +330,13 @@ export type Database = {
           vat_amount?: number
         }
         Update: {
+          amount_paid?: number
           counterparty_name?: string
           counterparty_tax_id?: string | null
           created_at?: string
           currency?: string
           direction?: Database["public"]["Enums"]["invoice_direction"]
+          due_date?: string | null
           id?: string
           invoice_number?: string
           issue_date?: string

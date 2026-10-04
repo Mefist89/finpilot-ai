@@ -11,7 +11,7 @@ type Invoice = { id: string; invoice_number: string; issue_date: string; counter
 type InvoiceItem = { id: string; invoice_id: string; line_number: number; product_name: string; sku: string | null; unit: string; quantity: number; unit_price: number; vat_rate: number };
 type PriceSheet = { id: string; purchase_invoice_id: string; sheet_number: number; sheet_date: string; status: Enums<"price_sheet_status">; created_at: string };
 type PriceItem = { id: string; price_sheet_id: string; line_number: number; product_name: string; sku: string | null; unit: string; quantity: number; purchase_price: number; additional_cost: number; markup_percent: number; vat_rate: number; sale_price: number };
-type Props = { invoices: Invoice[]; invoiceItems: InvoiceItem[]; sheets: PriceSheet[]; sheetItems: PriceItem[]; baseCurrency: string; loadError: string };
+type Props = { invoices: Invoice[]; invoiceItems: InvoiceItem[]; sheets: PriceSheet[]; sheetItems: PriceItem[]; baseCurrency: string; loadError: string; initialInvoiceId?: string };
 
 const inputClass = "focus-ring h-11 w-full rounded-xl border border-[#dfe4ec] bg-white px-3.5 text-xs font-semibold text-[#0b1838] placeholder:text-slate-400";
 
@@ -25,11 +25,12 @@ function formatMoney(value: number, currency: string) { return new Intl.NumberFo
 function formatDate(value: string) { return new Intl.DateTimeFormat("ro-MD", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`)); }
 function csvCell(value: string | number) { return `"${String(value).replaceAll('"', '""')}"`; }
 
-export function PriceSheetRegister({ invoices, invoiceItems, sheets, sheetItems, baseCurrency, loadError }: Props) {
+export function PriceSheetRegister({ invoices, invoiceItems, sheets, sheetItems, baseCurrency, loadError, initialInvoiceId = "" }: Props) {
   const router = useRouter();
+  const initialInvoiceIsAvailable = Boolean(initialInvoiceId) && invoices.some((invoice) => invoice.id === initialInvoiceId) && !sheets.some((sheet) => sheet.status !== "cancelled" && sheet.purchase_invoice_id === initialInvoiceId);
   const [search, setSearch] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [invoiceId, setInvoiceId] = useState("");
+  const [modalOpen, setModalOpen] = useState(initialInvoiceIsAvailable);
+  const [invoiceId, setInvoiceId] = useState(initialInvoiceIsAvailable ? initialInvoiceId : "");
   const [sheetDate, setSheetDate] = useState(today());
   const [markupPercent, setMarkupPercent] = useState("25");
   const [additionalCost, setAdditionalCost] = useState("0");

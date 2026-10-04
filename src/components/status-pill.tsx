@@ -9,7 +9,7 @@ const styles: Record<DocumentStatus, string> = {
 };
 
 const icons = { Ready: CircleCheck, "Needs review": TriangleAlert, Posted: CircleCheck, Processing: Clock3 } satisfies Record<DocumentStatus, typeof ScanSearch>;
-const labels: Record<DocumentStatus, string> = { Ready: "Pregătit", "Needs review": "Necesită verificare", Posted: "Contabilizat", Processing: "În procesare" };
+const labels: Record<DocumentStatus, string> = { Ready: "Verificat", "Needs review": "Necesită verificare", Posted: "Contabilizat", Processing: "În procesare" };
 
 export function StatusPill({ status }: { status: DocumentStatus }) {
   const Icon = icons[status];
