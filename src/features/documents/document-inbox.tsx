@@ -41,11 +41,11 @@ function formatMoney(value: number, currency: string) {
   return new Intl.NumberFormat("ro-MD", { style: "currency", currency: currency || "MDL", currencyDisplay: "code", minimumFractionDigits: 2 }).format(Number(value));
 }
 
-export function DocumentInbox({ initialDocuments }: { initialDocuments: DocumentRecord[] }) {
+export function DocumentInbox({ initialDocuments, initialUploadOpen = false }: { initialDocuments: DocumentRecord[]; initialUploadOpen?: boolean }) {
   const [documents, setDocuments] = useState<DocumentRecord[]>(initialDocuments);
   const [filter, setFilter] = useState<(typeof filters)[number]>("All");
   const [search, setSearch] = useState("");
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(initialUploadOpen);
   const [uploadError, setUploadError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState("");
@@ -83,6 +83,11 @@ export function DocumentInbox({ initialDocuments }: { initialDocuments: Document
       window.removeEventListener(EXPORT_DOCUMENTS_EVENT, exportDocuments);
     };
   }, [documents]);
+
+  useEffect(() => {
+    if (!initialUploadOpen) return;
+    window.history.replaceState(null, "", "/documents");
+  }, [initialUploadOpen]);
 
   const visible = documents.filter((doc) => (filter === "All" || doc.status === filter) && `${doc.fileName} ${doc.counterparty}`.toLowerCase().includes(search.toLowerCase()));
 

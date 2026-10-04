@@ -26,6 +26,17 @@ type Recognition = {
 type RecognitionConstructor = new () => Recognition;
 type AudioState = "idle" | "listening" | "ready" | "unsupported";
 
+function normalized(value: string) {
+  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
+function isIncomingInvoiceExtractionCommand(value: string) {
+  const command = normalized(value);
+  return /(extrage|incarca|proceseaza|analizeaza)/.test(command)
+    && /factur/.test(command)
+    && /(intrare|primita|furnizor)/.test(command);
+}
+
 export function AudioConversation() {
   const router = useRouter();
   const recognitionRef = useRef<Recognition | null>(null);
@@ -98,6 +109,10 @@ export function AudioConversation() {
   function sendQuestion() {
     const question = transcript.trim();
     if (!question) return;
+    if (isIncomingInvoiceExtractionCommand(question)) {
+      router.push("/documents?upload=1&source=audio");
+      return;
+    }
     router.push(`/copilot?q=${encodeURIComponent(question)}`);
   }
 

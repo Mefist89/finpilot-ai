@@ -21,7 +21,8 @@ function formatMoney(value: number | null, currency: string | null) {
   return new Intl.NumberFormat("ro-MD", { style: "currency", currency: currency || "MDL", currencyDisplay: "code", minimumFractionDigits: 2 }).format(Number(value));
 }
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({ searchParams }: PageProps<"/documents">) {
+  const params = await searchParams;
   const supabase = await createClient();
   const { data } = await supabase.from("documents").select("id,original_filename,document_type,document_number,counterparty_name,counterparty_tax_id,issue_date,due_date,currency,subtotal,vat_amount,total_amount,status,confidence").order("created_at", { ascending: false });
   const documents: DocumentRecord[] = (data ?? []).map((document) => ({
@@ -46,7 +47,7 @@ export default async function DocumentsPage() {
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-7 sm:px-7 lg:px-9 lg:py-9">
       <PageHeader eyebrow="Registrul documentelor" title="Documente" description="Încărcați, procesați și verificați toate documentele primare într-un singur loc." actions={<DocumentToolbarActions />} />
-      <DocumentInbox initialDocuments={documents} />
+      <DocumentInbox initialDocuments={documents} initialUploadOpen={params.upload === "1"} />
     </div>
   );
 }
