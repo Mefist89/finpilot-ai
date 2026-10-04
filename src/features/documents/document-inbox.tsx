@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, FileImage, FileSpreadsheet, FileText, Filter, LoaderCircle, MoreHorizontal, Search, SlidersHorizontal, UploadCloud, X } from "lucide-react";
 import type { DocumentRecord } from "@/types/accounting";
 import { StatusPill } from "@/components/status-pill";
+import { EXPORT_DOCUMENTS_EVENT, OPEN_DOCUMENT_UPLOAD_EVENT } from "@/features/documents/document-toolbar-actions";
 
 const filters = ["All", "Ready", "Needs review", "Processing", "Posted"] as const;
 const filterLabels = { All: "Toate", Ready: "Verificate", "Needs review": "Necesită verificare", Processing: "În procesare", Posted: "Contabilizate" } as const;
@@ -36,6 +37,31 @@ export function DocumentInbox({ initialDocuments }: { initialDocuments: Document
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const openUpload = () => setUploadOpen(true);
+    const exportDocuments = () => {
+      const statusLabels: Record<DocumentRecord["status"], string> = { Ready: "Verificat", "Needs review": "Necesită verificare", Processing: "În procesare", Posted: "Contabilizat" };
+      const rows = documents.map((doc) => [doc.id, doc.fileName, documentTypeLabels[doc.type], doc.counterparty, doc.date, doc.amount, `${doc.confidence}%`, statusLabels[doc.status]]);
+      const escape = (value: string) => `"${value.replaceAll('"', '""')}"`;
+      const csv = [["ID", "Document", "Tip", "Partener", "Data", "Suma", "Nivel de încredere", "Statut"], ...rows].map((row) => row.map(escape).join(",")).join("\r\n");
+      const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `registrul-documentelor-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+    };
+
+    window.addEventListener(OPEN_DOCUMENT_UPLOAD_EVENT, openUpload);
+    window.addEventListener(EXPORT_DOCUMENTS_EVENT, exportDocuments);
+    return () => {
+      window.removeEventListener(OPEN_DOCUMENT_UPLOAD_EVENT, openUpload);
+      window.removeEventListener(EXPORT_DOCUMENTS_EVENT, exportDocuments);
+    };
+  }, [documents]);
 
   const visible = documents.filter((doc) => (filter === "All" || doc.status === filter) && `${doc.fileName} ${doc.counterparty}`.toLowerCase().includes(search.toLowerCase()));
 

@@ -1,8 +1,9 @@
-import { ArrowLeft, Building2, CalendarDays, FileText, Hash, ReceiptText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Building2, CalendarDays, ExternalLink, FileText, Hash, ReceiptText, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { StatusPill } from "@/components/status-pill";
+import { DocumentPdfPreview } from "@/features/documents/document-pdf-preview";
 import { DocumentReviewActions } from "@/features/documents/document-review-actions";
 import type { DocumentStatus } from "@/types/accounting";
 import type { Json } from "@/types/database";
@@ -49,6 +50,18 @@ function date(value: string | null) {
   return new Intl.DateTimeFormat("ro-MD", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 }
 
+function translateWarning(value: string) {
+  const translations: Record<string, string> = {
+    "due_date missing on document; field left empty": "Data scadenței lipsește din document; câmpul a rămas necompletat.",
+    "supplier VAT code not printed; left empty": "Codul TVA al furnizorului nu este indicat; câmpul a rămas necompletat.",
+    "customer VAT code not printed; left empty": "Codul TVA al cumpărătorului nu este indicat; câmpul a rămas necompletat.",
+    "No product SKUs printed; SKU fields left empty": "Codurile produselor nu sunt indicate; câmpurile pentru cod au rămas necompletate.",
+    "Unit not printed for line items; defaulted to 'buc.'": "Unitatea de măsură nu este indicată pentru produse; s-a utilizat implicit «buc.».",
+  };
+
+  return translations[value.trim()] ?? value;
+}
+
 export default async function DocumentPage({ params }: PageProps<"/documents/[id]">) {
   const { id } = await params;
   const supabase = await createClient();
@@ -58,12 +71,11 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
   ]);
   if (!document) notFound();
 
-  const { data: signed } = await supabase.storage.from("documents").createSignedUrl(document.storage_path, 3600);
   const extracted = record(extraction?.extracted_data);
   const metadata = record(document.metadata);
   const invoiceItems = items(extracted.items ?? metadata.items);
   const warningsValue = extracted.warnings ?? metadata.warnings;
-  const warnings = Array.isArray(warningsValue) ? warningsValue.filter((item): item is string => typeof item === "string") : [];
+  const warnings = Array.isArray(warningsValue) ? warningsValue.filter((item): item is string => typeof item === "string").map(translateWarning) : [];
   const currentStatus = status(document.status);
 
   const fields = [
@@ -86,8 +98,11 @@ export default async function DocumentPage({ params }: PageProps<"/documents/[id
 
         <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)]">
           <section className="overflow-hidden rounded-2xl border border-[#e4e8ef] bg-white shadow-sm">
-            <div className="flex items-center gap-2 border-b border-[#edf0f4] px-4 py-3 text-[10px] font-extrabold text-[#0b1838]"><FileText className="h-4 w-4 text-[#0a91b8]" />Document original</div>
-            {signed?.signedUrl ? <iframe src={signed.signedUrl} title={`Previzualizare ${document.original_filename}`} className="h-[720px] w-full bg-slate-100" /> : <div className="grid h-[520px] place-items-center p-8 text-center text-[11px] font-semibold text-slate-400">Previzualizarea fișierului nu este disponibilă.</div>}
+            <div className="flex items-center justify-between gap-3 border-b border-[#edf0f4] px-4 py-3 text-[10px] font-extrabold text-[#0b1838]">
+              <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-[#0a91b8]" />Document original</span>
+              <a href={`/api/v1/documents/${document.id}/file`} target="_blank" rel="noreferrer" className="focus-ring inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[#0787ad] hover:bg-[#eef8fb]"><ExternalLink className="h-3.5 w-3.5" />Deschide documentul</a>
+            </div>
+            <DocumentPdfPreview src={`/api/v1/documents/${document.id}/file`} title={document.original_filename} />
           </section>
 
           <div className="space-y-5">

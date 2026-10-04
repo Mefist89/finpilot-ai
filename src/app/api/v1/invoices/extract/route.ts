@@ -172,6 +172,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "INVALID_AI_OUTPUT", message: "Serviciul AI a returnat date incomplete. Încercați din nou sau completați factura manual." }, { status: 502 });
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("idno,vat_code")
+    .eq("id", userData.user.id)
+    .maybeSingle();
+  const normalizeId = (value: string | null | undefined) => (value ?? "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  const companyIds = new Set([normalizeId(profile?.idno), normalizeId(profile?.vat_code)].filter(Boolean));
+  const supplierIsCompany = [extracted.supplier.tax_id, extracted.supplier.vat_code].some((value) => companyIds.has(normalizeId(value)));
+  const direction = supplierIsCompany ? "sale" : "purchase";
+  const counterparty = direction === "sale" ? extracted.customer : extracted.supplier;
+
   const storagePath = `${userData.user.id}/invoices/${crypto.randomUUID()}-${safeFilename(file.name)}`;
   const { error: uploadError } = await supabase.storage.from("documents").upload(storagePath, bytes, { contentType: file.type, upsert: false });
   if (uploadError) return NextResponse.json({ code: "STORAGE_FAILED", message: "Factura a fost analizată, dar fișierul nu a putut fi salvat." }, { status: 500 });
@@ -184,8 +195,8 @@ export async function POST(request: Request) {
     document_type: "invoice",
     status: "needs_review",
     document_number: extracted.invoice_number || null,
-    counterparty_name: extracted.supplier.name || null,
-    counterparty_tax_id: extracted.supplier.tax_id || null,
+    counterparty_name: counterparty.name || null,
+    counterparty_tax_id: counterparty.tax_id || null,
     issue_date: extracted.issue_date || null,
     due_date: extracted.due_date || null,
     currency: extracted.currency,
@@ -193,7 +204,7 @@ export async function POST(request: Request) {
     vat_amount: extracted.vat_amount,
     total_amount: extracted.total_amount,
     confidence: extracted.confidence,
-    metadata: { direction: "purchase", supplier: extracted.supplier, customer: extracted.customer, items: extracted.items, warnings: extracted.warnings } as Json,
+    metadata: { direction, supplier: extracted.supplier, customer: extracted.customer, items: extracted.items, warnings: extracted.warnings } as Json,
   }).select("id").single();
 
   if (documentError || !document) {
