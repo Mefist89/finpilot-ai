@@ -108,7 +108,11 @@ export async function POST(request: Request) {
       result = {
         answer: `Rezumatul perioadei curente (${label}) a fost calculat din facturile și operațiunile existente în baza de date.`,
         bullets: [`Vânzări|${money(sales, currency)}`, `Achiziții|${money(purchases, currency)}`, `TVA în facturi|${money(vat, currency)}`, `Operațiuni contabilizate|${posted}`, `Documente cu atenție|${attention}`],
-        sources: entries.slice(0, 5).map((entry) => ({ id: entry.id, label: `Operațiunea #${entry.entry_number}`, type: "entry" as const, href: "/ledger" })),
+        sources: [
+          { id: "summary-registers", label: "Registrul facturilor", type: "invoice", href: "/registers" },
+          { id: "summary-ledger", label: "Jurnalul operațiunilor", type: "entry", href: "/ledger" },
+          ...entries.slice(0, 5).map((entry) => ({ id: entry.id, label: `Operațiunea #${entry.entry_number}`, type: "entry" as const, href: "/ledger" })),
+        ],
       };
     } else if (intent === "price_creation") {
       const [invoicesResult, sheetsResult] = await Promise.all([
@@ -124,7 +128,10 @@ export async function POST(request: Request) {
           ? `Am găsit ${pending.length} facturi de intrare pentru care puteți forma prețurile de vânzare. Selectați factura dorită și completați adaosul comercial.`
           : "Toate facturile de intrare disponibile au deja fișe de formare a prețurilor.",
         bullets: [`Facturi de intrare|${invoices.length}`, `Fișe create|${completed.size}`, `De procesat|${pending.length}`],
-        sources: pending.slice(0, 8).map((invoice) => ({ id: invoice.id, label: `${invoice.invoice_number} · ${invoice.counterparty_name}`, type: "price" as const, href: `/prices?invoice=${invoice.id}` })),
+        sources: [
+          { id: "prices-open", label: "Deschide formarea prețurilor", type: "price", href: "/prices" },
+          ...pending.slice(0, 8).map((invoice) => ({ id: invoice.id, label: `${invoice.invoice_number} · ${invoice.counterparty_name}`, type: "price" as const, href: `/prices?invoice=${invoice.id}` })),
+        ],
       };
     } else if (intent === "document_review") {
       const { data: documents, error } = await supabase.from("documents").select("id,original_filename,status,confidence").in("status", ["uploaded", "processing", "needs_review", "failed"]).order("created_at", { ascending: false });
@@ -136,7 +143,10 @@ export async function POST(request: Request) {
       result = {
         answer: rows.length > 0 ? `Am găsit ${rows.length} documente care necesită procesare sau verificare.` : "Nu există documente care necesită atenție în acest moment.",
         bullets: [`De verificat|${review}`, `În procesare|${processing}`, `Cu eroare|${failed}`],
-        sources: rows.slice(0, 8).map((document) => ({ id: document.id, label: document.original_filename, type: "document" as const, href: `/documents/${document.id}` })),
+        sources: [
+          { id: "documents-open", label: "Registrul documentelor", type: "document", href: "/documents" },
+          ...rows.slice(0, 8).map((document) => ({ id: document.id, label: document.original_filename, type: "document" as const, href: `/documents/${document.id}` })),
+        ],
       };
     } else if (intent === "unpaid_supplier_invoices") {
       const { data: invoices, error } = await supabase.from("invoices").select("id,invoice_number,counterparty_name,total_amount,amount_paid,due_date,source_document_id").eq("direction", "purchase").neq("status", "cancelled").order("issue_date", { ascending: false });
@@ -148,7 +158,10 @@ export async function POST(request: Request) {
         answer: unpaid.length > 0 ? `Sunt ${unpaid.length} facturi neachitate ale furnizorilor, cu un sold total de ${money(total, currency)}.` : "Nu există facturi neachitate ale furnizorilor.",
         amount: money(total, currency),
         bullets: [`Facturi neachitate|${unpaid.length}`, `Depășite|${overdue}`, `Sold total|${money(total, currency)}`],
-        sources: unpaid.slice(0, 8).map((invoice) => ({ id: invoice.id, label: `${invoice.invoice_number} · ${invoice.counterparty_name}`, type: "invoice" as const, href: "/registers" })),
+        sources: [
+          { id: "supplier-register", label: "Registrul de procurări", type: "invoice", href: "/registers" },
+          ...unpaid.slice(0, 8).map((invoice) => ({ id: invoice.id, label: `${invoice.invoice_number} · ${invoice.counterparty_name}`, type: "invoice" as const, href: "/registers" })),
+        ],
       };
     } else {
       const [documentsResult, invoicesResult, entriesResult] = await Promise.all([
@@ -165,6 +178,11 @@ export async function POST(request: Request) {
       result = {
         answer: aiAnswer ?? "BotHub nu a răspuns momentan. Pot analiza perioada curentă, facturile furnizorilor, documentele care necesită verificare și facturile de intrare disponibile pentru formarea prețurilor.",
         bullets: [`Documente|${counts.documents}`, `Facturi|${counts.invoices}`, `Operațiuni|${counts.entries}`],
+        sources: [
+          { id: "general-documents", label: "Documente", type: "document", href: "/documents" },
+          { id: "general-registers", label: "Registre facturi", type: "invoice", href: "/registers" },
+          { id: "general-ledger", label: "Jurnalul operațiunilor", type: "entry", href: "/ledger" },
+        ],
       };
     }
 
