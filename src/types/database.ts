@@ -460,6 +460,7 @@ export type Database = {
           id: string
           posted_at: string | null
           source_document_id: string | null
+          source_invoice_id: string | null
           status: Database["public"]["Enums"]["entry_status"]
           updated_at: string
           user_id: string
@@ -473,6 +474,7 @@ export type Database = {
           id?: string
           posted_at?: string | null
           source_document_id?: string | null
+          source_invoice_id?: string | null
           status?: Database["public"]["Enums"]["entry_status"]
           updated_at?: string
           user_id?: string
@@ -486,6 +488,7 @@ export type Database = {
           id?: string
           posted_at?: string | null
           source_document_id?: string | null
+          source_invoice_id?: string | null
           status?: Database["public"]["Enums"]["entry_status"]
           updated_at?: string
           user_id?: string
@@ -496,6 +499,13 @@ export type Database = {
             columns: ["source_document_id", "user_id"]
             isOneToOne: false
             referencedRelation: "documents"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "ledger_entries_source_invoice_id_user_id_fkey"
+            columns: ["source_invoice_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id", "user_id"]
           },
         ]
@@ -610,6 +620,7 @@ export type Database = {
           p_invoice_number: string
           p_issue_date: string
           p_items: Json
+          p_source_document_id?: string | null
         }
         Returns: string
       }
@@ -633,6 +644,10 @@ export type Database = {
           p_sheet_date: string
         }
         Returns: string
+      }
+      post_journal_entry: {
+        Args: { p_entry_id: string }
+        Returns: undefined
       }
     }
     Enums: {

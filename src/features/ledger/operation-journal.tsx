@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, Download, FileText, Landmark, LoaderCircle, Plus, ReceiptText, Search, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, CheckCircle2, Download, FileText, Landmark, LoaderCircle, Plus, ReceiptText, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
@@ -59,6 +59,8 @@ export function OperationJournal({ accounts, documents, entries, lines, baseCurr
   const [sourceDocumentId, setSourceDocumentId] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const [postingEntryId, setPostingEntryId] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const visibleEntries = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("ro");
@@ -119,6 +121,20 @@ export function OperationJournal({ accounts, documents, entries, lines, baseCurr
     router.refresh();
   }
 
+  async function postEntry(entryId: string) {
+    if (!window.confirm("Confirmați contabilizarea acestei operațiuni? Verificați conturile și sumele înainte de continuare.")) return;
+    setPostingEntryId(entryId);
+    setActionError("");
+    const { error } = await createClient().rpc("post_journal_entry", { p_entry_id: entryId });
+    if (error) {
+      setActionError("Operațiunea nu a putut fi contabilizată. Verificați dacă debitul este egal cu creditul.");
+      setPostingEntryId("");
+      return;
+    }
+    setPostingEntryId("");
+    router.refresh();
+  }
+
   function exportCsv() {
     const rows = [["Data", "Nr.", "Descriere", "Cont", "Denumire cont", "Debit", "Credit", "Moneda", "Statut", "Document"]];
     visibleEntries.forEach((entry) => {
@@ -153,7 +169,9 @@ export function OperationJournal({ accounts, documents, entries, lines, baseCurr
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center"><div className="relative min-w-0 flex-1 sm:w-[260px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Caută operațiuni, conturi..." className="focus-ring h-10 w-full rounded-xl border border-[#e5e9f0] bg-[#fafbfc] pl-9 pr-3 text-[11px] font-medium text-[#0b1838] placeholder:text-slate-400" /></div><button onClick={exportCsv} disabled={visibleEntries.length === 0} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#dfe4ec] bg-white px-4 text-[10px] font-extrabold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"><Download className="h-4 w-4" />Exportă CSV</button><button onClick={openCreateForm} disabled={activeAccounts.length < 2} className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white hover:bg-[#142754] disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-4 w-4" />Operațiune nouă</button></div>
     </div>
 
-    <JournalTable entries={visibleEntries} allEntryCount={entries.length} linesByEntry={linesByEntry} accountMap={accountMap} documentMap={documentMap} activeAccountsCount={activeAccounts.length} onCreate={openCreateForm} />
+    {actionError && <p role="alert" className="mt-4 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-[10px] font-bold text-rose-700">{actionError}</p>}
+
+    <JournalTable entries={visibleEntries} allEntryCount={entries.length} linesByEntry={linesByEntry} accountMap={accountMap} documentMap={documentMap} activeAccountsCount={activeAccounts.length} onCreate={openCreateForm} onPost={postEntry} postingEntryId={postingEntryId} />
 
     {modalOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-[#0b1838]/45 p-4 backdrop-blur-sm" onMouseDown={(event) => event.currentTarget === event.target && !saving && setModalOpen(false)}><form onSubmit={createEntry} className="animate-float-in max-h-[calc(100vh-2rem)] w-full max-w-[650px] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-7">
       <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-extrabold tracking-tight text-[#0b1838]">Operațiune contabilă nouă</h2><p className="mt-1 text-[11px] font-medium text-slate-400">Înregistrarea se salvează ca ciornă, cu debitul egal cu creditul.</p></div><button type="button" onClick={() => setModalOpen(false)} disabled={saving} className="rounded-lg p-2 text-slate-400 hover:bg-slate-50 disabled:opacity-40" aria-label="Închide"><X className="h-5 w-5" /></button></div>
@@ -180,16 +198,16 @@ function AccountSelect({ label, hint, value, onChange, accounts }: { label: stri
   return <label className="block"><span className="mb-2 block text-[11px] font-extrabold text-[#0b1838]">{label}</span><select required value={value} onChange={(event) => onChange(event.target.value)} className={inputClass}>{accounts.map((account) => <option key={account.id} value={account.id}>{account.code} — {account.name}</option>)}</select><span className="mt-1.5 block text-[9px] font-semibold text-slate-400">{hint}</span></label>;
 }
 
-function JournalTable({ entries, allEntryCount, linesByEntry, accountMap, documentMap, activeAccountsCount, onCreate }: { entries: Entry[]; allEntryCount: number; linesByEntry: Map<string, Line[]>; accountMap: Map<string, Account>; documentMap: Map<string, Document>; activeAccountsCount: number; onCreate: () => void }) {
+function JournalTable({ entries, allEntryCount, linesByEntry, accountMap, documentMap, activeAccountsCount, onCreate, onPost, postingEntryId }: { entries: Entry[]; allEntryCount: number; linesByEntry: Map<string, Line[]>; accountMap: Map<string, Account>; documentMap: Map<string, Document>; activeAccountsCount: number; onCreate: () => void; onPost: (entryId: string) => Promise<void>; postingEntryId: string }) {
   const visibleLineCount = entries.reduce((sum, entry) => sum + (linesByEntry.get(entry.id)?.length ?? 0), 0);
   return <section className="card-shadow mt-4 overflow-hidden rounded-2xl border border-[#e8ebf2] bg-white">
-    {entries.length === 0 ? <div className="grid min-h-[330px] place-items-center px-6 text-center"><div><ReceiptText className="mx-auto h-10 w-10 text-slate-300" /><h2 className="mt-4 text-sm font-extrabold text-[#0b1838]">{allEntryCount === 0 ? "Jurnalul este gol" : "Nu există rezultate"}</h2><p className="mx-auto mt-2 max-w-md text-[11px] leading-5 text-slate-400">{allEntryCount === 0 ? "Adăugați prima operațiune contabilă. Fiecare înregistrare va avea automat un debit și un credit egale." : "Schimbați filtrul sau termenul de căutare."}</p>{allEntryCount === 0 && activeAccountsCount >= 2 && <button onClick={onCreate} className="focus-ring mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white"><Plus className="h-4 w-4" />Adaugă prima operațiune</button>}</div></div> : <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left"><thead><tr className="border-b border-[#e9ecf2] bg-[#fbfcfd] text-[9px] font-extrabold uppercase tracking-[0.12em] text-slate-400"><th className="px-5 py-4">Data / Nr.</th><th className="px-3 py-4">Descriere</th><th className="px-3 py-4">Cont contabil</th><th className="px-3 py-4 text-right">Debit</th><th className="px-3 py-4 text-right">Credit</th><th className="px-3 py-4">Document</th><th className="px-5 py-4">Statut</th></tr></thead><tbody className="divide-y divide-[#eef0f5]">
+    {entries.length === 0 ? <div className="grid min-h-[330px] place-items-center px-6 text-center"><div><ReceiptText className="mx-auto h-10 w-10 text-slate-300" /><h2 className="mt-4 text-sm font-extrabold text-[#0b1838]">{allEntryCount === 0 ? "Jurnalul este gol" : "Nu există rezultate"}</h2><p className="mx-auto mt-2 max-w-md text-[11px] leading-5 text-slate-400">{allEntryCount === 0 ? "Adăugați prima operațiune contabilă. Fiecare înregistrare va avea automat un debit și un credit egale." : "Schimbați filtrul sau termenul de căutare."}</p>{allEntryCount === 0 && activeAccountsCount >= 2 && <button onClick={onCreate} className="focus-ring mt-5 inline-flex h-10 items-center gap-2 rounded-xl bg-[#0b1838] px-4 text-[10px] font-extrabold text-white"><Plus className="h-4 w-4" />Adaugă prima operațiune</button>}</div></div> : <div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-left"><thead><tr className="border-b border-[#e9ecf2] bg-[#fbfcfd] text-[9px] font-extrabold uppercase tracking-[0.12em] text-slate-400"><th className="px-5 py-4">Data / Nr.</th><th className="px-3 py-4">Descriere</th><th className="px-3 py-4">Cont contabil</th><th className="px-3 py-4 text-right">Debit</th><th className="px-3 py-4 text-right">Credit</th><th className="px-3 py-4">Document</th><th className="px-3 py-4">Statut</th><th className="px-5 py-4 text-right">Acțiuni</th></tr></thead><tbody className="divide-y divide-[#eef0f5]">
       {entries.flatMap((entry) => {
         const source = entry.source_document_id ? documentMap.get(entry.source_document_id) : undefined;
         return (linesByEntry.get(entry.id) ?? []).map((line, index) => {
           const account = accountMap.get(line.account_id);
           const first = index === 0;
-          return <tr key={line.id} className={first ? "border-t border-[#dfe4ec]" : "bg-[#fcfdfe]"}><td className="px-5 py-3.5 align-top">{first && <><span className="block text-[11px] font-extrabold text-[#0b1838]">{formatDate(entry.entry_date)}</span><span className="mt-1 block font-mono text-[9px] font-bold text-[#0a8fb7]">OP-{String(entry.entry_number).padStart(5, "0")}</span></>}</td><td className="max-w-[270px] px-3 py-3.5 align-top">{first && <p className="text-[11px] font-bold leading-5 text-slate-700">{entry.description}</p>}</td><td className="px-3 py-3.5 align-top"><span className="block font-mono text-[10px] font-extrabold text-[#0787ad]">{account?.code ?? "—"}</span><span className="mt-1 block max-w-[220px] text-[10px] font-semibold text-slate-500">{account?.name ?? "Cont indisponibil"}</span></td><td className="px-3 py-3.5 text-right align-top text-[11px] font-extrabold text-[#0b1838]">{Number(line.debit) > 0 ? formatMoney(Number(line.debit), line.currency) : "—"}</td><td className="px-3 py-3.5 text-right align-top text-[11px] font-extrabold text-[#0b1838]">{Number(line.credit) > 0 ? formatMoney(Number(line.credit), line.currency) : "—"}</td><td className="max-w-[180px] px-3 py-3.5 align-top">{first && (source ? <span className="flex items-start gap-2 text-[9px] font-bold text-slate-500"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate" title={source.original_filename}>{source.document_number || source.original_filename}</span></span> : <span className="text-[9px] font-semibold text-slate-300">Înregistrare manuală</span>)}</td><td className="px-5 py-3.5 align-top">{first && <span className={`inline-flex rounded-full px-2.5 py-1 text-[8px] font-extrabold ${statusClasses[entry.status]}`}>{statusLabels[entry.status]}</span>}</td></tr>;
+          return <tr key={line.id} className={first ? "border-t border-[#dfe4ec]" : "bg-[#fcfdfe]"}><td className="px-5 py-3.5 align-top">{first && <><span className="block text-[11px] font-extrabold text-[#0b1838]">{formatDate(entry.entry_date)}</span><span className="mt-1 block font-mono text-[9px] font-bold text-[#0a8fb7]">OP-{String(entry.entry_number).padStart(5, "0")}</span></>}</td><td className="max-w-[270px] px-3 py-3.5 align-top">{first && <p className="text-[11px] font-bold leading-5 text-slate-700">{entry.description}</p>}</td><td className="px-3 py-3.5 align-top"><span className="block font-mono text-[10px] font-extrabold text-[#0787ad]">{account?.code ?? "—"}</span><span className="mt-1 block max-w-[220px] text-[10px] font-semibold text-slate-500">{account?.name ?? "Cont indisponibil"}</span></td><td className="px-3 py-3.5 text-right align-top text-[11px] font-extrabold text-[#0b1838]">{Number(line.debit) > 0 ? formatMoney(Number(line.debit), line.currency) : "—"}</td><td className="px-3 py-3.5 text-right align-top text-[11px] font-extrabold text-[#0b1838]">{Number(line.credit) > 0 ? formatMoney(Number(line.credit), line.currency) : "—"}</td><td className="max-w-[180px] px-3 py-3.5 align-top">{first && (source ? <span className="flex items-start gap-2 text-[9px] font-bold text-slate-500"><FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="truncate" title={source.original_filename}>{source.document_number || source.original_filename}</span></span> : <span className="text-[9px] font-semibold text-slate-300">Înregistrare manuală</span>)}</td><td className="px-3 py-3.5 align-top">{first && <span className={`inline-flex rounded-full px-2.5 py-1 text-[8px] font-extrabold ${statusClasses[entry.status]}`}>{statusLabels[entry.status]}</span>}</td><td className="px-5 py-3.5 text-right align-top">{first && entry.status === "draft" && <button type="button" onClick={() => void onPost(entry.id)} disabled={postingEntryId === entry.id} className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[8px] font-extrabold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">{postingEntryId === entry.id ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}Contabilizează</button>}</td></tr>;
         });
       })}
     </tbody></table></div>}
